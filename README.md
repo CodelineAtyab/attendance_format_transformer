@@ -161,20 +161,63 @@ Known 2026 holidays recorded in the file:
 
 ---
 
-## Generation Script
+## Python Scripts
+
+### `main.py`
+Placeholder entry point created by `uv init`. Currently only prints a hello
+message. Intended as a future unified CLI entry point for the transformer.
+
+```
+uv run python main.py
+```
+
+### `generate_march_attendance.py`
+Generates the March 2026 attendance report Excel file.
+
+**Input:** `source_format_with_data.xlsm` → `March` sheet  
+**Output:** `opal_batch1_agile_oracles_attendance_march_2026.xlsx`
 
 ```
 uv run python generate_march_attendance.py
 ```
 
-The script:
-1. Reads `source_format_with_data.xlsm` → sheet matching the target month
-2. Derives working days / weekend days empirically from source data
-3. Maps source codes to destination codes
-4. Writes a formatted `.xlsx` with colour-coded cells, freeze panes, and
-   a built-in key-code legend
+**What the script does:**
+1. Reads all employee rows (rows 7 onwards) from the `March` sheet
+2. Derives weekend days (all-`None` columns) and public holidays (all-`'-'` columns) empirically from the source data — no hardcoded calendar assumption
+3. Maps each source attendance code to the destination code (see mapping table above)
+4. Writes a fully formatted `.xlsx` with:
+   - Colour-coded attendance cells per code
+   - Date header row with weekend/holiday highlighting
+   - Attendance Days count, Actual Working Days, and a Total Amount formula (`=Stipend/ActualDays*AttDays`)
+   - Key-code legend panel on the right
+   - Freeze panes at F3, landscape page setup
 
-**Fields that must be filled manually after generation:**
-- Column C (ID), D (GSM), E (Company) — per employee
-- Column AN (Stipend Amount) — per employee; the Total Amount formula
-  (`=AN/AM*AL`) calculates automatically once stipend is entered.
+**Key constants to update when reusing for a different month:**
+
+| Constant | Description |
+|----------|-------------|
+| `MONTH_NAME` | Month name string (e.g. `"April"`) |
+| `YEAR` | Year (e.g. `2026`) |
+| `MONTH_NUM` | Month number (e.g. `4`) |
+| `TOTAL_DAYS` | Number of days in the month |
+| `WEEKEND_DAYS` | Set of day-numbers (1-based) that are weekends — derive from source data |
+| `PUBLIC_HOLIDAYS` | Set of day-numbers (1-based) that are public holidays — derive from source data |
+
+**Fields left blank for manual entry after generation:**
+- Column C (ID), D (GSM), E (Company) — not present in the source file
+- Column AN (Stipend Amount) — the Total Amount formula calculates automatically once filled
+
+---
+
+## Project Setup
+
+Dependencies are managed with [uv](https://github.com/astral-sh/uv) and Python 3.11.
+
+```
+uv add openpyxl xlrd   # install dependencies
+uv run python <script> # run any script
+```
+
+Dependencies declared in `pyproject.toml`:
+- `openpyxl >= 3.1.5` — read/write `.xlsx` files
+- `xlrd >= 2.0.2` — legacy `.xls` support (available for future use)
